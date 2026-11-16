@@ -320,8 +320,7 @@ footer a:hover { color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  .reveal { opacity: 1; transform: none; }
+  .phone, .s-start { animation: none; }
 }
 </style>
 </head>
@@ -614,13 +613,13 @@ footer a:hover { color: var(--accent); }
       <h2>Ready when you head out.</h2>
       <p>WayBack is installed from an APK file. It needs Android 8.0 or newer.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/julyamba/way-back/releases/latest" rel="noopener">
+        <a class="btn btn-primary" id="apkBtn" href="https://github.com/julyamba/way-back/releases/latest" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
           Download the APK
         </a>
       </div>
       <ol>
-        <li><b>Download</b> the latest <code>app-release</code> APK to your phone.</li>
+        <li><b>Download</b> the latest APK to your phone with the button above.</li>
         <li><b>Open it</b> and allow installing from this source when Android asks.</li>
         <li><b>Allow</b> location, activity and notifications, then tap START.</li>
       </ol>
@@ -700,13 +699,30 @@ footer a:hover { color: var(--accent); }
   });
   apply();
 
+  // Download button: link straight to the APK in the newest release, keeping its
+  // versioned file name. Falls back to the releases page if the lookup fails.
+  var apkBtn = document.getElementById('apkBtn');
+  if (apkBtn && window.fetch) {
+    fetch('https://api.github.com/repos/julyamba/way-back/releases/latest')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rel) {
+        if (!rel || !rel.assets) return;
+        var apk = rel.assets.filter(function (x) { return /\.apk$/i.test(x.name); })[0];
+        if (apk) apkBtn.href = apk.browser_download_url;
+      })
+      .catch(function () {});
+  }
+
   // Phone screens
   var tabs = document.querySelectorAll('.tab');
   var screens = document.querySelectorAll('.screen');
   var order = ['guide', 'home', 'record'];
   var current = 0;
   var timer = null;
-  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // The demo animations are small and slow, so they also run when the system asks for
+  // reduced motion (often just Windows' "Animation effects" switch); only the floating
+  // phone and the pulsing button are dropped in that case.
+  var reduced = false;
 
   function show(name) {
     current = order.indexOf(name);
